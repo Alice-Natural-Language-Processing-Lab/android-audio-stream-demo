@@ -31,15 +31,14 @@ public class MainActivity extends Activity {
     private Stream stream;
 
     // Audio
-    private AudioRecord record = null;
-    private AudioTrack track = null;
+    private AudioRecord record;
+    private AudioTrack track;
 
-    private static final int CHUNK_SIZE = 1024;
+    private ADPCM adpcm;
 
     private boolean streaming = false;
 
-    private ADPCM encoder;
-    private ADPCM decoder;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,8 +71,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        encoder = new ADPCM();
-        decoder = new ADPCM();
+        adpcm = new ADPCM();
     }
 
     @Override
@@ -210,7 +208,7 @@ public class MainActivity extends Activity {
     }
 
     private void startRecording() {
-        encoder.reset();
+        adpcm.resetEncoder();
 
         new Thread(new Runnable() {
             @Override
@@ -249,7 +247,7 @@ public class MainActivity extends Activity {
                     if(pos == recordChunk.length) {
                         pos = 0;
 
-                        final byte[] bytes = encoder.encode(recordChunk);
+                        final byte[] bytes = adpcm.encode(recordChunk);
                         NabtoStatus status = nabtoApi.streamWrite(stream, bytes);
 
                         double endTime = System.currentTimeMillis();
@@ -285,7 +283,7 @@ public class MainActivity extends Activity {
 
 
     private void startPlaying() {
-        decoder.reset();
+        adpcm.resetEncoder();
 
         new Thread(new Runnable() {
             @Override
@@ -328,7 +326,7 @@ public class MainActivity extends Activity {
                         break;
                     }
 
-                    final short[] tmp = decoder.decode(result.getData());
+                    final short[] tmp = adpcm.decode(result.getData());
                     track.write(tmp, 0, tmp.length);
 
                     double endTime = System.currentTimeMillis();

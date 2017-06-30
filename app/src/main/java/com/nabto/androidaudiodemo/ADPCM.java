@@ -20,22 +20,33 @@ public class ADPCM {
             15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
     };
 
-    private int leftStepIndex, rightStepIndex, leftPredicted, rightPredicted;
+    private int leftStepIndexEnc, rightStepIndexEnc, leftPredictedEnc, rightPredictedEnc;
+    private int leftStepIndexDec, rightStepIndexDec, leftPredictedDec, rightPredictedDec;
 
     /**
      * Creates a ADPCM encoder/decoder.
      */
     public ADPCM() {
-        this.reset();
+        this.resetEncoder();
+        this.resetDecoder();
     }
 
     /**
      * Reset the ADPCM predictor.
-     * Call when encoding or decoding a new stream.
+     * Call when encoding a new stream.
      */
-    public void reset() {
-        leftStepIndex = rightStepIndex = 0;
-        leftPredicted = rightPredicted = 0;
+    public void resetEncoder() {
+        leftStepIndexEnc = rightStepIndexEnc = 0;
+        leftPredictedEnc = rightPredictedEnc = 0;
+    }
+
+    /**
+     * Reset the ADPCM predictor.
+     * Call when decoding a new stream.
+     */
+    public void resetDecoder() {
+        leftStepIndexDec = rightStepIndexDec = 0;
+        leftPredictedDec = rightPredictedDec = 0;
     }
 
     /**
@@ -52,26 +63,26 @@ public class ADPCM {
         while (outputIndex < count) {
             int leftSample = input[inputIndex++];
             int rightSample = input[inputIndex++];
-            int leftStep = stepTable[leftStepIndex];
-            int rightStep = stepTable[rightStepIndex];
-            int leftCode = ((leftSample - leftPredicted) * 4 + leftStep * 8) / leftStep;
-            int rightCode = ((rightSample - rightPredicted) * 4 + rightStep * 8) / rightStep;
+            int leftStep = stepTable[leftStepIndexEnc];
+            int rightStep = stepTable[rightStepIndexEnc];
+            int leftCode = ((leftSample - leftPredictedEnc) * 4 + leftStep * 8) / leftStep;
+            int rightCode = ((rightSample - rightPredictedEnc) * 4 + rightStep * 8) / rightStep;
             if (leftCode > 15) leftCode = 15;
             if (rightCode > 15) rightCode = 15;
             if (leftCode < 0) leftCode = 0;
             if (rightCode < 0) rightCode = 0;
-            leftPredicted += ((leftCode * leftStep) >>> 2) - ((15 * leftStep) >>> 3);
-            rightPredicted += ((rightCode * rightStep) >>> 2) - ((15 * rightStep) >>> 3);
-            if (leftPredicted > 32767) leftPredicted = 32767;
-            if (rightPredicted > 32767) rightPredicted = 32767;
-            if (leftPredicted < -32768) leftPredicted = -32768;
-            if (rightPredicted < -32768) rightPredicted = -32768;
-            leftStepIndex += stepIndexTable[leftCode];
-            rightStepIndex += stepIndexTable[rightCode];
-            if (leftStepIndex > 88) leftStepIndex = 88;
-            if (rightStepIndex > 88) rightStepIndex = 88;
-            if (leftStepIndex < 0) leftStepIndex = 0;
-            if (rightStepIndex < 0) rightStepIndex = 0;
+            leftPredictedEnc += ((leftCode * leftStep) >>> 2) - ((15 * leftStep) >>> 3);
+            rightPredictedEnc += ((rightCode * rightStep) >>> 2) - ((15 * rightStep) >>> 3);
+            if (leftPredictedEnc > 32767) leftPredictedEnc = 32767;
+            if (rightPredictedEnc > 32767) rightPredictedEnc = 32767;
+            if (leftPredictedEnc < -32768) leftPredictedEnc = -32768;
+            if (rightPredictedEnc < -32768) rightPredictedEnc = -32768;
+            leftStepIndexEnc += stepIndexTable[leftCode];
+            rightStepIndexEnc += stepIndexTable[rightCode];
+            if (leftStepIndexEnc > 88) leftStepIndexEnc = 88;
+            if (rightStepIndexEnc > 88) rightStepIndexEnc = 88;
+            if (leftStepIndexEnc < 0) leftStepIndexEnc = 0;
+            if (rightStepIndexEnc < 0) rightStepIndexEnc = 0;
 
             //output[outputIndex++] = (byte) ((leftCode << 4) | rightCode);
             output[outputIndex++] = (byte) ((rightCode << 4) | rightCode);
@@ -94,22 +105,22 @@ public class ADPCM {
             int leftCode = input[inputIndex++] & 0xFF;
             int rightCode = leftCode & 0xF;
             leftCode = leftCode >>> 4;
-            int leftStep = stepTable[leftStepIndex];
-            int rightStep = stepTable[rightStepIndex];
-            leftPredicted += ((leftCode * leftStep) >>> 2) - ((15 * leftStep) >>> 3);
-            rightPredicted += ((rightCode * rightStep) >>> 2) - ((15 * rightStep) >>> 3);
-            if (leftPredicted > 32767) leftPredicted = 32767;
-            if (rightPredicted > 32767) rightPredicted = 32767;
-            if (leftPredicted < -32768) leftPredicted = -32768;
-            if (rightPredicted < -32768) rightPredicted = -32768;
-            output[outputIndex++] = (short) leftPredicted;
-            output[outputIndex++] = (short) rightPredicted;
-            leftStepIndex += stepIndexTable[leftCode];
-            rightStepIndex += stepIndexTable[rightCode];
-            if (leftStepIndex > 88) leftStepIndex = 88;
-            if (rightStepIndex > 88) rightStepIndex = 88;
-            if (leftStepIndex < 0) leftStepIndex = 0;
-            if (rightStepIndex < 0) rightStepIndex = 0;
+            int leftStep = stepTable[leftStepIndexDec];
+            int rightStep = stepTable[rightStepIndexDec];
+            leftPredictedDec += ((leftCode * leftStep) >>> 2) - ((15 * leftStep) >>> 3);
+            rightPredictedDec += ((rightCode * rightStep) >>> 2) - ((15 * rightStep) >>> 3);
+            if (leftPredictedDec > 32767) leftPredictedDec = 32767;
+            if (rightPredictedDec > 32767) rightPredictedDec = 32767;
+            if (leftPredictedDec < -32768) leftPredictedDec = -32768;
+            if (rightPredictedDec < -32768) rightPredictedDec = -32768;
+            output[outputIndex++] = (short) leftPredictedDec;
+            output[outputIndex++] = (short) rightPredictedDec;
+            leftStepIndexDec += stepIndexTable[leftCode];
+            rightStepIndexDec += stepIndexTable[rightCode];
+            if (leftStepIndexDec > 88) leftStepIndexDec = 88;
+            if (rightStepIndexDec > 88) rightStepIndexDec = 88;
+            if (leftStepIndexDec < 0) leftStepIndexDec = 0;
+            if (rightStepIndexDec < 0) rightStepIndexDec = 0;
         }
         return output;
     }
